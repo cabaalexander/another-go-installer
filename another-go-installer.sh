@@ -179,7 +179,7 @@ goInstall(){
 
 # If this file is running in terminal call the function `goInstall`
 # Otherwise just source it
-if [ "$(basename "$0")" = "go.sh" ]
+if [ "$(basename "$0")" = "another-go-installer.sh" ]
 then
     goInstall "${@}"
 fi
