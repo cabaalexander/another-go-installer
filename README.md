@@ -17,7 +17,7 @@ Script to install `Golang` and create a basic [workspace](https://golang.org/doc
 ## Usage
 
 ```bash
-$ another-go-installer <OPTION>
+another-go-installer <OPTION>
 ```
 
 ### Options
