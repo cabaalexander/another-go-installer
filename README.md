@@ -12,6 +12,8 @@ Script to install `Golang` and create a basic [workspace](https://golang.org/doc
 
 ❌ Installs a specific version
 
+❌ Validates checksum of the downloaded file
+
 ## Usage
 
 ```bash
