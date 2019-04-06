@@ -12,8 +12,6 @@ Script to install `Golang` and create a basic [workspace](https://golang.org/doc
 
 ❌ Installs a specific version
 
----
-
 ## Usage
 
 ```bash
@@ -26,8 +24,6 @@ another-go-installer <OPTION>
     -r      Removes ALL things GoLang related (Not the workspace)
 
 Written by [Alexander Caba](https://github.com/cabaalexander)
-
----
 
 ## See also
 
