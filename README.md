@@ -1,6 +1,9 @@
 # another-go-installer
 
-Script to install `Golang` and create a basic [workspace](https://golang.org/doc/code.html#Workspaces). By default the script takes the latest version in the download [page](https://golang.org/dl/).
+Script to install `Golang` and create a basic
+[workspace](https://golang.org/doc/code.html#Workspaces).
+By default the script takes the latest version in the download
+[page](https://golang.org/dl/).
 
 ## Features
 
@@ -22,8 +25,10 @@ another-go-installer <OPTION>
 
 ### Options
 
-    -i      Installs GoLang
-    -r      Removes ALL things GoLang related (Not the workspace)
+```bash
+-i      Installs GoLang
+-r      Removes ALL things GoLang related (Not the workspace)
+```
 
 Written by [Alexander Caba](https://github.com/cabaalexander)
 
