@@ -15,7 +15,7 @@ By default the script takes the latest version in the download
 
 ❌ Installs a specific version
 
-❌ Validates checksum of the downloaded file
+✔ checksum of the downloaded file
 
 ## Usage
 

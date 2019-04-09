@@ -2,9 +2,10 @@
 
 # another-go-installer
 
+GOLANG_ORG_DL_PAGE=$(mktemp)
 DOWNLOADED_FILE=$(mktemp)
 
-trap '{ rm -f $DOWNLOADED_FILE ; }' SIGINT SIGTERM EXIT
+trap '{ rm -f $DOWNLOADED_FILE $GOLANG_ORG_DL_PAGE ; }' SIGINT SIGTERM EXIT
 
 GOROOT="$HOME/.go"
 GOPATH="$HOME/go"
@@ -96,6 +97,37 @@ __remove_env_vars(){
     done <<<"$ENV_VARS"
 }
 
+__validate_checksum(){
+    local TO_DOWNLOAD DOWNLOADED LOCAL_SHA_CHECKSUM \
+        REMOTE_SHA_CHECKSUM GO_VERSION_DL_LINE
+
+    TO_DOWNLOAD=$1
+    DOWNLOADED=$2
+
+    GO_VERSION_DL_LINE=$(
+        nl -ba < "$GOLANG_ORG_DL_PAGE" |
+            grep -E "$TO_DOWNLOAD" |
+            tail -1 |
+            awk '{print $1}'
+    )
+
+    REMOTE_SHA_CHECKSUM=$(
+        awk "NR > $GO_VERSION_DL_LINE && NR < $((GO_VERSION_DL_LINE + 9)) \
+            {print}" < "$GOLANG_ORG_DL_PAGE" |
+                grep -E '<tt>' |
+                sed -E 's:.*<tt>(.*)</tt>.*:\1:'
+    )
+
+    LOCAL_SHA_CHECKSUM=$(openssl dgst -sha256 "$DOWNLOADED" | cut -d' ' -f2)
+
+    if [ "$LOCAL_SHA_CHECKSUM" != "$REMOTE_SHA_CHECKSUM" ]; then
+        echo "SHA256 Checksum ❌ " 1>&2
+        exit 1
+    else
+        echo "SHA256 Checksum ✔"
+    fi
+}
+
 __uninstall(){
     [ -d "$GOROOT" ] || exit 1
     echo -n "Uninstalling... "
@@ -117,9 +149,10 @@ __install(){
         GO_LATEST_VERSION \
         FILE_TO_DOWNLOAD
 
+    curl -s https://golang.org/dl/ > "$GOLANG_ORG_DL_PAGE"
+
     ENDPOINT_AND_VERSION=$(
-        curl -s https://golang.org/dl/ |
-            grep -E "$OS_NAME" |
+        grep -E "$OS_NAME" "$GOLANG_ORG_DL_PAGE" |
             grep -E 'go1.' |
             head -1 |
             sed -E 's/^.*href="(.*).*\/go([0-9](\.[0-9]+)+).*$/\1 \2/'
@@ -143,7 +176,13 @@ __install(){
         exit 1
     fi
 
-    # TODO: validate checksum of the $DOWNLOADED_FILE
+    # Checks if openssl is available on the system for checksum validation
+    if command -v openssl &> /dev/null; then
+        __validate_checksum "$FILE_TO_DOWNLOAD" "$DOWNLOADED_FILE"
+    else
+        echo "openssl not installed, please install and re-run" 1>&2
+        exit 1
+    fi
 
     echo "Extracting file... "
     ./spinner tar -xzf "$DOWNLOADED_FILE" -C /tmp/
