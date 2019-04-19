@@ -13,7 +13,7 @@ By default the script takes the latest version in the download
 
 ❌ Prompts for a github user (to create projects directory inside the workspace)
 
-❌ Installs a specific version
+✔ Installs a specific version
 
 ✔ checksum of the downloaded file
 
@@ -26,8 +26,9 @@ another-go-installer <OPTION>
 ### Options
 
 ```bash
--i      Installs GoLang
--r      Removes ALL things GoLang related (Not the workspace)
+-i [VERSION]    Installs GoLang, you can pass a version of your choice too
+-r              Removes ALL things GoLang related (Not the workspace)
+-h              Shows the help
 ```
 
 Written by [Alexander Caba](https://github.com/cabaalexander)

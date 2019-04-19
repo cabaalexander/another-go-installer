@@ -41,21 +41,21 @@ UNDERLINE=$(tput smul)
 NO_UNDERLINE=$(tput rmul)
 
 cat <<EOF
-    ${BOLD}NAME${NORMAL}
-        $NAME - Installs the latest version of GoLang and create a workspace
+${BOLD}NAME${NORMAL}
+    $NAME - Installs the latest version of GoLang and create a workspace
 
-    ${BOLD}USAGE${NORMAL}
-        ${BOLD}$NAME${NORMAL} <${UNDERLINE}OPTION${NO_UNDERLINE}>
+${BOLD}USAGE${NORMAL}
+    ${BOLD}$NAME${NORMAL} <${UNDERLINE}OPTION${NO_UNDERLINE}>
 
-    ${BOLD}OPTIONS${NORMAL}
-        -${BOLD}i${NORMAL}      Installs GoLang
-        -${BOLD}r${NORMAL}      Remove ALL things GoLang related (Not the workspace)
+${BOLD}OPTIONS${NORMAL}
+    -${BOLD}i${NORMAL}      Installs GoLang
+    -${BOLD}r${NORMAL}      Remove ALL things GoLang related (Not the workspace)
 
-    ${BOLD}AUTHOR${NORMAL}
-        Written by Alexander Caba
+${BOLD}AUTHOR${NORMAL}
+    Written by Alexander Caba
 
-    ${BOLD}SEE ALSO${NORMAL}
-        My dotfiles at: https://github.com/cabaalexander/dotfiles
+${BOLD}SEE ALSO${NORMAL}
+    My dotfiles at: https://github.com/cabaalexander/dotfiles
 EOF
 }
 
@@ -137,6 +137,40 @@ __uninstall(){
     echo "Go uninstalled."
 }
 
+__get_all_versions(){
+    grep -E "$OS_NAME" "$GOLANG_ORG_DL_PAGE" |
+        grep -E 'go1.' |
+        grep -v 'span' |
+        sed -E 's/^.*href="(.*).*\/go([0-9](\.[0-9]+)+).*$/\1 \2/' |
+        uniq
+}
+
+__validate_version(){
+    local VERSION
+    VERSION=$1
+
+    if [ -z "$VERSION" ]; then
+        return
+    fi
+
+    ALL_VERSIONS=$(__get_all_versions | cut -d' ' -f2)
+    FOUND_VERSION=$(grep -E "^$VERSION$" <<<"$ALL_VERSIONS" | head -1)
+
+    if [ -z "$FOUND_VERSION" ] ; then
+        exec 3>&1 1>&2
+        echo "Version $VERSION not found..."
+        echo
+        read -n1 -rsp "Show a list of available versions? [y\\n]" ANSWER
+        if [[ $ANSWER =~ ^[yY]$ ]]; then
+            echo "$ALL_VERSIONS"
+        fi
+        exec 1>&3
+        exit 1
+    else
+        echo "$FOUND_VERSION"
+    fi
+}
+
 __install(){
     if [ -d "$GOROOT" ]; then
         echo "You have GoLang already installed m8... ¯\\_(ツ)_/¯" 1>&2
@@ -147,28 +181,26 @@ __install(){
         ENDPOINT_AND_VERSION \
         ENDPOINT \
         GO_LATEST_VERSION \
-        FILE_TO_DOWNLOAD
-
+        FILE_TO_DOWNLOAD \
+        ARG_VERSION
     curl -s https://golang.org/dl/ > "$GOLANG_ORG_DL_PAGE"
 
-    ENDPOINT_AND_VERSION=$(
-        grep -E "$OS_NAME" "$GOLANG_ORG_DL_PAGE" |
-            grep -E 'go1.' |
-            head -1 |
-            sed -E 's/^.*href="(.*).*\/go([0-9](\.[0-9]+)+).*$/\1 \2/'
-    )
+    ARG_VERSION=$(__validate_version "$1") || exit 1
+
+    ENDPOINT_AND_VERSION=$(__get_all_versions | head -1)
 
     ENDPOINT=$(cut -d' ' -f1 <<<"$ENDPOINT_AND_VERSION")
     GO_LATEST_VERSION=$(cut -d' ' -f2 <<<"$ENDPOINT_AND_VERSION")
+    DOWNLOAD_VERSION=${ARG_VERSION:-$GO_LATEST_VERSION}
 
-    if [ -z "$GO_LATEST_VERSION" ]; then
+    if [ -z "$DOWNLOAD_VERSION" ]; then
         echo "The version of GoLang could not be verified..." 1>&2
         exit 1
     fi
 
-    FILE_TO_DOWNLOAD="go${GO_LATEST_VERSION}.${SYSTEM}.tar.gz"
+    FILE_TO_DOWNLOAD="go${DOWNLOAD_VERSION}.${SYSTEM}.tar.gz"
 
-    echo -en "Downloading Golang ${GO_LATEST_VERSION}\n... "
+    echo -en "Downloading Golang ${DOWNLOAD_VERSION}\n... "
     if ./spinner curl -sL "${ENDPOINT}/${FILE_TO_DOWNLOAD}" > "$DOWNLOADED_FILE"; then
         echo "Finished."
     else
@@ -197,16 +229,16 @@ __install(){
     echo "$ENV_VARS" | tee -a "$SHELL_PROFILE"
 
     # Final message
-    echo -e "\nGolang version ${GO_LATEST_VERSION} was installed. Restart your terminal to see changes."
+    echo -e "\nGolang version ${DOWNLOAD_VERSION} was installed. Restart your terminal to see changes."
 }
 
 goInstall(){
     local MAPPER
 
-    while getopts ":irh" OPT; do
+    while getopts ":i:rh" OPT; do
         case $OPT in
             h) MAPPER="__show_help" ;;
-            i) MAPPER="__install" ;;
+            i) MAPPER="__install $OPTARG" ;;
             r) MAPPER="__uninstall" ;;
             *) # do default stuff ;;
         esac
