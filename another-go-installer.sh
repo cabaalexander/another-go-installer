@@ -210,6 +210,7 @@ __install(){
 
     # Checks if openssl is available on the system for checksum validation
     if command -v openssl &> /dev/null; then
+        echo "Validating checksum..."
         __validate_checksum "$FILE_TO_DOWNLOAD" "$DOWNLOADED_FILE"
     else
         echo "openssl not installed, please install and re-run" 1>&2
@@ -223,10 +224,12 @@ __install(){
     # Create GoLang workspace
     mkdir -vp "$GOPATH"/{bin,src,pkg}
 
-    # Add environment variables to the current shell *rc
-    touch "$SHELL_PROFILE"
-    echo "Added these variables to your $SHELL_PROFILE"
-    echo "$ENV_VARS" | tee -a "$SHELL_PROFILE"
+    if ! [ "$QUIET" ]; then
+        # Add environment variables to the current shell *rc
+        touch "$SHELL_PROFILE"
+        echo "Added these variables to your $SHELL_PROFILE"
+        echo "$ENV_VARS" #| tee -a "$SHELL_PROFILE"
+    fi
 
     # Final message
     echo -e "\nGolang version ${DOWNLOAD_VERSION} was installed. Restart your terminal to see changes."
@@ -235,11 +238,12 @@ __install(){
 goInstall(){
     local MAPPER
 
-    while getopts ":i:rh" OPT; do
+    while getopts ":i:rhq" OPT; do
         case $OPT in
             h) MAPPER="__show_help" ;;
             i) MAPPER="__install $OPTARG" ;;
             r) MAPPER="__uninstall" ;;
+            q) QUIET="yup" ;;
             *) # do default stuff ;;
         esac
     done

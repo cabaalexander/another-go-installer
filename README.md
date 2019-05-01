@@ -29,6 +29,7 @@ another-go-installer <OPTION>
 -i [VERSION]    Installs GoLang, you can pass a version of your choice too
 -r              Removes ALL things GoLang related (Not the workspace)
 -h              Shows the help
+-q              Does not add environment environments to your *rc file
 ```
 
 Written by [Alexander Caba](https://github.com/cabaalexander)
