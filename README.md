@@ -26,10 +26,10 @@ another-go-installer <OPTION>
 ### Options
 
 ```bash
--i [VERSION]    Installs GoLang, you can pass a version of your choice too
+-i [VERSION]    Installs latest version of GoLang (Or you can pass a version)
 -r              Removes ALL things GoLang related (Not the workspace)
 -h              Shows the help
--q              Does not add environment environments to your *rc file
+-q              Does not add the environment variables to your *rc file
 ```
 
 Written by [Alexander Caba](https://github.com/cabaalexander)
