@@ -32,20 +32,18 @@ EOF
 )
 
 __show_help(){
-local NAME BOLD NORMAL UNDERLINE NO_UNDERLINE
+local NAME BOLD NORMAL
 
 NAME="another-go-installer"
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
-UNDERLINE=$(tput smul)
-NO_UNDERLINE=$(tput rmul)
 
 cat <<EOF
 ${BOLD}NAME${NORMAL}
     $NAME - Installs the latest version of GoLang and create a workspace
 
 ${BOLD}USAGE${NORMAL}
-    ${BOLD}$NAME${NORMAL} <${UNDERLINE}OPTION${NO_UNDERLINE}>
+    ${BOLD}$NAME${NORMAL} <OPTION>
 
 ${BOLD}OPTIONS${NORMAL}
     -${BOLD}i${NORMAL}      Installs GoLang
@@ -129,9 +127,13 @@ __validate_checksum(){
 }
 
 __uninstall(){
-    [ -d "$GOROOT" ] || exit 1
+    if ! [ -d "$GOROOT" ]; then
+        echo "Golang not installed..."
+        exit 0
+    fi
+
     echo -n "Uninstalling... "
-    ./spinner rm -rf "$GOROOT"
+    rm -rf "$GOROOT"
     echo
     __remove_env_vars "$SHELL_PROFILE"
     echo "Go uninstalled."
@@ -201,7 +203,7 @@ __install(){
     FILE_TO_DOWNLOAD="go${DOWNLOAD_VERSION}.${SYSTEM}.tar.gz"
 
     echo -en "Downloading Golang ${DOWNLOAD_VERSION}\n... "
-    if ./spinner curl -sL "${ENDPOINT}/${FILE_TO_DOWNLOAD}" > "$DOWNLOADED_FILE"; then
+    if curl -sL "${ENDPOINT}/${FILE_TO_DOWNLOAD}" > "$DOWNLOADED_FILE"; then
         echo "Finished."
     else
         echo -e "\n\nSomething happened while downloading! Try later." 1>&2
@@ -218,7 +220,7 @@ __install(){
     fi
 
     echo "Extracting file... "
-    ./spinner tar -xzf "$DOWNLOADED_FILE" -C /tmp/
+    tar -xzf "$DOWNLOADED_FILE" -C /tmp/
     mv -f /tmp/go "$GOROOT"
 
     # Create GoLang workspace
@@ -227,8 +229,8 @@ __install(){
     if ! [ "$QUIET" ]; then
         # Add environment variables to the current shell *rc
         touch "$SHELL_PROFILE"
-        echo "Added these variables to your $SHELL_PROFILE"
-        echo "$ENV_VARS" #| tee -a "$SHELL_PROFILE"
+        echo "Added these variables to your $SHELL_PROFILE file"
+        echo "$ENV_VARS" | tee -a "$SHELL_PROFILE"
     fi
 
     # Final message
