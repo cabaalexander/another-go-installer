@@ -246,7 +246,10 @@ goInstall(){
             i) MAPPER="__install $OPTARG" ;;
             r) MAPPER="__uninstall" ;;
             q) QUIET="yup" ;;
-            *) # do default stuff ;;
+            \?)
+                echo "Invalid option (-$OPTARG)"
+                exit 1
+                ;;
         esac
     done
     shift $((OPTIND - 1))
