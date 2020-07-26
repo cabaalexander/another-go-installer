@@ -20,6 +20,8 @@ OS_ARCH=$(
 )
 SYSTEM="${OS_NAME}-${OS_ARCH}"
 
+DOWNLOAD_PAGE="https://golang.org/dl/"
+
 SHELL_PROFILE="${HOME}/.$(basename "$SHELL")rc"
 
 ENV_VARS=$(
@@ -140,10 +142,14 @@ __uninstall(){
 }
 
 __get_all_versions(){
+    local SED_FIND SED_REPLACE
+    SED_FIND='^.*href=".*\/go([0-9](\.[0-9]+)+).*$'
+    SED_REPLACE="${DOWNLOAD_PAGE%/*}"
+
     grep -E "$OS_NAME" "$GOLANG_ORG_DL_PAGE" |
         grep -E 'go1.' |
         grep -v 'span' |
-        sed -E 's/^.*href="(.*).*\/go([0-9](\.[0-9]+)+).*$/\1 \2/' |
+        sed -E "s~$SED_FIND~$SED_REPLACE \\1~" |
         uniq
 }
 
@@ -184,16 +190,19 @@ __install(){
         ENDPOINT \
         GO_LATEST_VERSION \
         FILE_TO_DOWNLOAD \
-        ARG_VERSION
-    curl -s https://golang.org/dl/ > "$GOLANG_ORG_DL_PAGE"
+        USER_INPUT_VERSION \
+        VERSION
+    curl -s "$DOWNLOAD_PAGE" > "$GOLANG_ORG_DL_PAGE"
 
-    ARG_VERSION=$(__validate_version "$1") || exit 1
+    VERSION=$1
+    USER_INPUT_VERSION=$(__validate_version "$VERSION") || exit 1
 
     ENDPOINT_AND_VERSION=$(__get_all_versions | head -1)
 
     ENDPOINT=$(cut -d' ' -f1 <<<"$ENDPOINT_AND_VERSION")
     GO_LATEST_VERSION=$(cut -d' ' -f2 <<<"$ENDPOINT_AND_VERSION")
-    DOWNLOAD_VERSION=${ARG_VERSION:-$GO_LATEST_VERSION}
+
+    DOWNLOAD_VERSION=${USER_INPUT_VERSION:-$GO_LATEST_VERSION}
 
     if [ -z "$DOWNLOAD_VERSION" ]; then
         echo "The version of GoLang could not be verified..." 1>&2
