@@ -9,7 +9,7 @@ By default the script takes the latest version in the download
 
 ✔ Detects automatically the Operative System (`mac`, `linux`)
 
-✔ Detects automatically the architecture of your OS (`64`, `32` bits)
+✔ Detects automatically the architecture of your OS (`64`, `32` bits / `arm`)
 
 ❌ Prompts for a github user (to create projects directory inside the workspace)
 
@@ -20,7 +20,7 @@ By default the script takes the latest version in the download
 ## Usage
 
 ```bash
-another-go-installer <OPTION>
+another-go-installer [OPTION]
 ```
 
 ### Options
@@ -32,12 +32,3 @@ another-go-installer <OPTION>
 -q              Does not add the environment variables to your *rc file
 ```
 
-Written by [Alexander Caba](https://github.com/cabaalexander)
-
-## See also
-
-My dotfiles: <https://github.com/cabaalexander/dotfiles>
-
-## Inspired by
-
-<https://github.com/canha/golang-tools-install-script>

@@ -2,10 +2,15 @@
 
 # another-go-installer
 
-GOLANG_ORG_DL_PAGE=$(mktemp)
+GOLANG_ORG_DOWNLOAD_PAGE=$(mktemp)
 DOWNLOADED_FILE=$(mktemp)
+EXTRACTED_GO_TAR=$(mktemp -d)
 
-trap '{ rm -f $DOWNLOADED_FILE $GOLANG_ORG_DL_PAGE ; }' SIGINT SIGTERM EXIT
+trap '{ rm -rf \
+  $DOWNLOADED_FILE \
+  $GOLANG_ORG_DOWNLOAD_PAGE \
+  $EXTRACTED_GO_TAR \
+  ; }' SIGINT SIGTERM EXIT
 
 GOROOT="$HOME/.go"
 GOPATH="$HOME/go"
@@ -14,6 +19,8 @@ OS_NAME=$(uname -s | tr "[:upper:]" "[:lower:]")
 OS_ARCH=$(
     if [ "$(uname -m)" = "x86_64" ]; then
         echo "amd64"
+    elif [ "$(uname -m)" = "x86_64" ]; then
+        echo "arm64"
     else
         echo "386"
     fi
@@ -48,8 +55,10 @@ ${BOLD}USAGE${NORMAL}
     ${BOLD}$NAME${NORMAL} <OPTION>
 
 ${BOLD}OPTIONS${NORMAL}
-    -${BOLD}i${NORMAL}      Installs GoLang
-    -${BOLD}r${NORMAL}      Remove ALL things GoLang related (Not the workspace)
+    -${BOLD}i [version]${NORMAL}  Installs GoLang
+    -${BOLD}h${NORMAL}            Shows the help
+    -${BOLD}r${NORMAL}            Remove ALL things GoLang related (Not the workspace)
+    -${BOLD}q${NORMAL}            Does not add the environment variables to your *rc file
 
 ${BOLD}AUTHOR${NORMAL}
     Written by Alexander Caba
@@ -105,7 +114,7 @@ __validate_checksum(){
     DOWNLOADED=$2
 
     GO_VERSION_DL_LINE=$(
-        nl -ba < "$GOLANG_ORG_DL_PAGE" |
+        nl -ba < "$GOLANG_ORG_DOWNLOAD_PAGE" |
             grep -E "$TO_DOWNLOAD" |
             tail -1 |
             awk '{print $1}'
@@ -113,7 +122,7 @@ __validate_checksum(){
 
     REMOTE_SHA_CHECKSUM=$(
         awk "NR > $GO_VERSION_DL_LINE && NR < $((GO_VERSION_DL_LINE + 9)) \
-            {print}" < "$GOLANG_ORG_DL_PAGE" |
+            {print}" < "$GOLANG_ORG_DOWNLOAD_PAGE" |
                 grep -E '<tt>' |
                 sed -E 's:.*<tt>(.*)</tt>.*:\1:'
     )
@@ -121,10 +130,10 @@ __validate_checksum(){
     LOCAL_SHA_CHECKSUM=$(openssl dgst -sha256 "$DOWNLOADED" | cut -d' ' -f2)
 
     if [ "$LOCAL_SHA_CHECKSUM" != "$REMOTE_SHA_CHECKSUM" ]; then
-        echo "SHA256 Checksum ❌ " 1>&2
+        echo "SHA256 Checksum ❌" 1>&2
         exit 1
     else
-        echo "SHA256 Checksum ✔"
+        echo "SHA256 Checksum ✅"
     fi
 }
 
@@ -146,7 +155,7 @@ __get_all_versions(){
     SED_FIND='^.*href=".*\/go([0-9](\.[0-9]+)+).*$'
     SED_REPLACE="${DOWNLOAD_PAGE%/*}"
 
-    grep -E "$OS_NAME" "$GOLANG_ORG_DL_PAGE" |
+    grep -E "$OS_NAME" "$GOLANG_ORG_DOWNLOAD_PAGE" |
         grep -E 'go1.' |
         grep -v 'span' |
         sed -E "s~$SED_FIND~$SED_REPLACE \\1~" |
@@ -170,12 +179,20 @@ __validate_version(){
         echo
         read -n1 -rsp "Show a list of available versions? [y\\n]" ANSWER
         if [[ $ANSWER =~ ^[yY]$ ]]; then
-            echo "$ALL_VERSIONS"
+            echo -e "\n$ALL_VERSIONS"
         fi
         exec 1>&3
         exit 1
     else
         echo "$FOUND_VERSION"
+    fi
+}
+
+__create_workspace(){
+    # Create GoLang workspace
+    if ! [ -d "$GOPATH" ]; then
+      echo "Creating workspace"
+      mkdir -vp "$GOPATH"/{bin,src,pkg}
     fi
 }
 
@@ -192,11 +209,15 @@ __install(){
         FILE_TO_DOWNLOAD \
         USER_INPUT_VERSION \
         VERSION
-    curl -s "$DOWNLOAD_PAGE" > "$GOLANG_ORG_DL_PAGE"
+    curl -sL "$DOWNLOAD_PAGE" > "$GOLANG_ORG_DOWNLOAD_PAGE"
 
     VERSION=$1
     USER_INPUT_VERSION=$(__validate_version "$VERSION") || exit 1
 
+    # @TODO: if via default (not option selected) notify that latest version is
+    # to be installed
+
+    # @TODO: add to dry mode
     ENDPOINT_AND_VERSION=$(__get_all_versions | head -1)
 
     ENDPOINT=$(cut -d' ' -f1 <<<"$ENDPOINT_AND_VERSION")
@@ -213,7 +234,7 @@ __install(){
 
     echo -en "Downloading Golang ${DOWNLOAD_VERSION}\n... "
     if curl -sL "${ENDPOINT}/${FILE_TO_DOWNLOAD}" > "$DOWNLOADED_FILE"; then
-        echo "Finished."
+        echo -e "\nFinished."
     else
         echo -e "\n\nSomething happened while downloading! Try later." 1>&2
         exit 1
@@ -229,11 +250,10 @@ __install(){
     fi
 
     echo "Extracting file... "
-    tar -xzf "$DOWNLOADED_FILE" -C /tmp/
-    mv -f /tmp/go "$GOROOT"
+    tar -xzf "$DOWNLOADED_FILE" -C $EXTRACTED_GO_TAR
+    mv -f $EXTRACTED_GO_TAR/go "$GOROOT"
 
-    # Create GoLang workspace
-    mkdir -vp "$GOPATH"/{bin,src,pkg}
+    __create_workspace
 
     if ! [ "$QUIET" ]; then
         # Add environment variables to the current shell *rc
@@ -263,7 +283,7 @@ goInstall(){
     done
     shift $((OPTIND - 1))
 
-    eval "${MAPPER:-__install}"
+    eval "${MAPPER:-__install} $@"
 }
 
 # If this file is running in terminal call the function `goInstall`
